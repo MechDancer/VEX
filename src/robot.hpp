@@ -23,7 +23,10 @@ struct device_bundle {
 };
 
 #define FOREACH(GROUP, OPERATION) \
-(GROUP).for_each([=](typename decltype(GROUP)::device_t &it) { OPERATION })
+(GROUP).for_each([=](typename decltype(GROUP)::device_t &it)  OPERATION )
+
+#define MAP(TYPE, GROUP, NAME, OPERATION) \
+(GROUP).read<TYPE>([=](const typename decltype(GROUP)::device_t &NAME) OPERATION)
 
 template<size_t count>
 using motor_bundle = device_bundle<pros::Motor, count>;
@@ -37,19 +40,23 @@ private:
 public:
     Chassis() {
         FOREACH(left,
-                it.set_brake_mode(MOTOR_BRAKE_HOLD);
-                        it.set_gearing(MOTOR_GEARSET_18);
+                {
+                    it.set_brake_mode(MOTOR_BRAKE_HOLD);
+                    it.set_gearing(MOTOR_GEARSET_18);
+                }
         );
         FOREACH(right,
-                it.set_brake_mode(MOTOR_BRAKE_HOLD);
-                        it.set_gearing(MOTOR_GEARSET_18);
-                        it.set_reversed(true);
+                {
+                    it.set_brake_mode(MOTOR_BRAKE_HOLD);
+                    it.set_gearing(MOTOR_GEARSET_18);
+                    it.set_reversed(true);
+                }
         );
     }
 
     void move(const int32_t forward, const int32_t turn) {
-        FOREACH(left, it.move(forward + turn););
-        FOREACH(right, it.move(forward - turn););
+        FOREACH(left, { it.move(forward + turn); });
+        FOREACH(right, { it.move(forward - turn); });
     }
 
     void stop() {
@@ -65,7 +72,7 @@ private:
 public:
 
     Arm() {
-        FOREACH(motors, it.set_gearing(MOTOR_GEARSET_18););
+        FOREACH(motors, { it.set_gearing(MOTOR_GEARSET_18); });
     }
 
     //TODO
@@ -80,19 +87,19 @@ private:
 
 public:
     Claw() {
-        FOREACH(motors, it.set_gearing(MOTOR_GEARSET_36););
+        FOREACH(motors, { it.set_gearing(MOTOR_GEARSET_36); });
     }
 
     void clam() {
-        FOREACH(motors, it.move(127););
+        FOREACH(motors, { it.move(127); });
     }
 
     void release() {
-        FOREACH(motors, it.move(-127););
+        FOREACH(motors, { it.move(-127); });
     }
 
     void stop() {
-        FOREACH(motors, it.move(0););
+        FOREACH(motors, { it.move(0); });
     }
 
 
