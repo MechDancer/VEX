@@ -1,7 +1,11 @@
+#ifndef VEX_ROBOT_HPP
+#define VEX_ROBOT_HPP
+
 #include "main.h"
 #include <functional>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 
 template<class _device_t, size_t count>
 struct device_bundle {
@@ -25,11 +29,16 @@ struct device_bundle {
 #define FOREACH(GROUP, OPERATION) \
 (GROUP).for_each([=](typename decltype(GROUP)::device_t &it)  OPERATION )
 
-#define MAP(TYPE, GROUP, NAME, OPERATION) \
-(GROUP).read<TYPE>([=](const typename decltype(GROUP)::device_t &NAME) OPERATION)
+#define MAP(TYPE, GROUP, OPERATION) \
+(GROUP).read<TYPE>([=](const typename decltype(GROUP)::device_t &it) OPERATION)
 
 template<size_t count>
 using motor_bundle = device_bundle<pros::Motor, count>;
+
+template<typename ... fold_t>
+auto sum(fold_t ... ele) {
+    return (ele +...);
+}
 
 class Chassis {
 
@@ -42,14 +51,11 @@ public:
         FOREACH(left,
                 {
                     it.set_brake_mode(MOTOR_BRAKE_HOLD);
-                    it.set_gearing(MOTOR_GEARSET_18);
                 }
         );
         FOREACH(right,
                 {
                     it.set_brake_mode(MOTOR_BRAKE_HOLD);
-                    it.set_gearing(MOTOR_GEARSET_18);
-                    it.set_reversed(true);
                 }
         );
     }
@@ -67,28 +73,28 @@ public:
 
 class Arm {
 private:
-    motor_bundle<2> motors{pros::Motor(15, true), pros::Motor(11)};
+    motor_bundle<2> motors{pros::Motor(15), pros::Motor(11)};
 
 public:
 
-    Arm() {
-        FOREACH(motors, { it.set_gearing(MOTOR_GEARSET_18); });
-    }
-
+    Arm() = default;
     //TODO
     //Position close loop
+
+    int32_t current_position() {
+        auto v = MAP(int32_t, motors, { return it.get_position(); });
+        return std::accumulate(v.begin(), v.end(), 0);
+    }
 
 };
 
 class Claw {
 private:
-    motor_bundle<2> motors{pros::Motor(20, true), pros::Motor(16)};
+    motor_bundle<2> motors{pros::Motor(20), pros::Motor(16)};
 
 
 public:
-    Claw() {
-        FOREACH(motors, { it.set_gearing(MOTOR_GEARSET_36); });
-    }
+    Claw() = default;
 
     void clam() {
         FOREACH(motors, { it.move(127); });
@@ -104,3 +110,5 @@ public:
 
 
 };
+
+#endif

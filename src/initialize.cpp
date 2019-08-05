@@ -1,13 +1,13 @@
 #include "main.h"
 
 void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
+    static bool pressed = false;
+    pressed = !pressed;
+    if (pressed) {
+        pros::lcd::set_text(2, "I was pressed!");
+    } else {
+        pros::lcd::clear_line(2);
+    }
 }
 
 /**
@@ -17,10 +17,21 @@ void on_center_button() {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+    pros::lcd::initialize();
+    pros::lcd::set_text(1, "Hello PROS User!");
 
-	pros::lcd::register_btn1_cb(on_center_button);
+    pros::lcd::register_btn1_cb(on_center_button);
+
+
+    pros::Motor initializer_chassis_lf(5, MOTOR_GEARSET_18, false, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_chassis_lb(10, MOTOR_GEARSET_18, false, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_chassis_rf(1, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_chassis_rb(6, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_arm_left(15, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_arm_right(11, MOTOR_GEARSET_18, false, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_claw_left(20, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_claw_right(16, MOTOR_GEARSET_36, false, MOTOR_ENCODER_DEGREES);
+
 }
 
 /**

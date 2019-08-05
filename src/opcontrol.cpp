@@ -23,7 +23,10 @@ void opcontrol() {
 
     
     
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
     while (true) {
+        auto
         pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
                          (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
                          (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
@@ -50,4 +53,5 @@ void opcontrol() {
 
         pros::delay(20);
     }
+#pragma clang diagnostic pop
 }
