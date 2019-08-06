@@ -1,5 +1,6 @@
 #include "main.h"
 #include "robot.hpp"
+
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -16,25 +17,41 @@
 
 void opcontrol() {
     pros::Controller master(pros::E_CONTROLLER_MASTER);
-    
+
     Chassis chassis;
     Arm arm;
-    Claw claw;
+    Collector collector;
 
-    
-    
+    double position_left_last = .0;
+    double position_right_last = .0;
+
+    odometry::odometry_t odometry{};
+    chassis_config_t chassis_config = {
+            37.5,
+            5.0,
+            5.0
+    };
+
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
     while (true) {
-        auto
-        pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-                         (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-                         (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
+        pros::lcd::print(1, "left %d, right %d", chassis.left_position(), chassis.right_position());
+        pros::lcd::print(2, "x %f, y %f, w %f", odometry.x, odometry.y, odometry.theta);
+        pros::lcd::print(3, "s %f, a %f", odometry.s, odometry.a);
+        pros::lcd::print(4, "arm %d", arm.current_position());
         int a = master.get_analog(ANALOG_LEFT_Y);
         int b = master.get_analog(ANALOG_RIGHT_X);
-        
-        chassis.move(a,b);
-        
+
+        double position_left_current = chassis.left_position();
+        double position_right_current = chassis.left_position();
+
+        chassis.move(a, b);
+        odometry += wheels_to_odometry(position_left_current - position_left_last,
+                                       position_right_current - position_right_last, chassis_config);
+        pros::lcd::print(3, "d_left %f, d_right %f", position_left_current - position_left_last,
+                         position_right_current - position_right_last);
+
         if (master.get_digital(DIGITAL_L2)) {
             //up
         } else if (master.get_digital(DIGITAL_L1)) {
@@ -44,13 +61,14 @@ void opcontrol() {
         }
 
         if (master.get_digital(DIGITAL_R2)) {
-            claw.clam();
+            collector.collect();
         } else if (master.get_digital(DIGITAL_R1)) {
-            claw.release();
+            collector.spit();
         } else {
-            claw.stop();
+            collector.stop();
         }
-
+        position_left_last = position_left_current;
+        position_right_last = position_right_current;
         pros::delay(20);
     }
 #pragma clang diagnostic pop

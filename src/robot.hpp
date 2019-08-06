@@ -21,7 +21,7 @@ struct device_bundle {
     template<class result_t>
     std::vector<result_t> read(const std::function<result_t(const device_t &)> &block) {
         std::vector<result_t> result(count);
-        std::transform(devices, devices + count, result.begin(), block());
+        std::transform(devices, devices + count, result.begin(), block);
         return result;
     }
 };
@@ -38,6 +38,98 @@ using motor_bundle = device_bundle<pros::Motor, count>;
 template<typename ... fold_t>
 auto sum(fold_t ... ele) {
     return (ele +...);
+}
+
+/**
+ * 底盘模型
+ */
+struct chassis_config_t {
+    float
+            width,        // 轮距
+            left_radius,  // 左轮半径
+            right_radius; // 右轮半径
+};
+
+namespace odometry {
+    enum class odometry_type : bool {
+        state, delta
+    };
+
+    template<odometry_type type = odometry_type::state>
+    struct odometry_t;
+
+
+    /** 里程计增量 */
+    template<>
+    struct odometry_t<odometry_type::delta> {
+        double s, a, x, y, theta;
+    };
+
+    /** 里程计状态 */
+    template<>
+    struct odometry_t<odometry_type::state> {
+        double s, a, x, y, theta;
+
+        odometry_t &operator+=(
+                const odometry_t<odometry_type::delta> &delta
+        ) {
+            s += delta.s;
+            a += delta.a;
+
+            const auto sin = std::sin(theta),
+                    cos = std::cos(theta);
+            theta += delta.theta;
+
+            x += delta.x * cos - delta.y * sin;
+            y += delta.x * sin + delta.y * cos;
+            return *this;
+        }
+
+        odometry_t &operator-=(
+                const odometry_t<odometry_type::delta> &delta
+        ) {
+            s -= delta.s;
+            a -= delta.a;
+
+            theta -= delta.theta;
+            const auto sin = std::sin(theta),
+                    cos = std::cos(theta);
+
+            x -= delta.x * cos - delta.y * sin;
+            y -= delta.x * sin + delta.y * cos;
+            return *this;
+        }
+
+        odometry_t operator+(
+                const odometry_t<odometry_type::delta> &delta
+        ) const {
+            auto temp = *this;
+            return temp += delta;
+        }
+
+        odometry_t operator-(
+                const odometry_t<odometry_type::delta> &delta
+        ) const {
+            auto temp = *this;
+            return temp -= delta;
+        }
+
+        odometry_t<odometry_type::delta> operator-(
+                const odometry_t<odometry_type::state> &mark
+        ) const {
+            const auto sin = std::sin(-mark.theta),
+                    cos = std::cos(-mark.theta),
+                    dx = x - mark.x,
+                    dy = y - mark.y;
+
+            return {s - mark.s,
+                    a - mark.a,
+                    dx * cos - dy * sin,
+                    dx * sin + dy * cos,
+                    theta - mark.theta};
+        }
+    };
+
 }
 
 class Chassis {
@@ -60,16 +152,53 @@ public:
         );
     }
 
+
+    double left_position() {
+        auto v = MAP(int32_t, left, { return it.get_position(); });
+        return std::accumulate(v.begin(), v.end(), .0) / 2 * 180 / 3.1415926;
+    }
+
+    double right_position() {
+        auto v = MAP(int32_t, right, { return it.get_position(); });
+        return std::accumulate(v.begin(), v.end(), .0) / 2 * 180 / 3.1415926;
+    }
+
+
     void move(const int32_t forward, const int32_t turn) {
         FOREACH(left, { it.move(forward + turn); });
         FOREACH(right, { it.move(forward - turn); });
     }
 
-    void stop() {
-        move(0, 0);
-    }
-
 };
+
+
+/**
+ * 推算里程增量
+ * @param left   左轮转角增量
+ * @param right  右轮转角增量
+ * @param config 底盘结构参数
+ * @return 里程增量
+ */
+odometry::odometry_t<odometry::odometry_type::delta>
+wheels_to_odometry(
+        double left,
+        double right,
+        const chassis_config_t &config) {
+    const auto l = config.left_radius * left,
+            r = config.right_radius * right,
+            s = (r + l) / 2,
+            a = (r - l) / config.width;
+    double x, y;
+    if (std::abs(a) < std::numeric_limits<double>::epsilon()) {
+        x = s;
+        y = 0;
+    } else {
+        auto _r = s / a;
+        x = _r * std::sin(a);
+        y = _r * (1 - std::cos(a));
+    }
+    return {std::abs(s), std::abs(a), x, y, a};
+}
 
 class Arm {
 private:
@@ -83,24 +212,24 @@ public:
 
     int32_t current_position() {
         auto v = MAP(int32_t, motors, { return it.get_position(); });
-        return std::accumulate(v.begin(), v.end(), 0);
+        return std::accumulate(v.begin(), v.end(), 0) / 2;
     }
 
 };
 
-class Claw {
+class Collector {
 private:
     motor_bundle<2> motors{pros::Motor(20), pros::Motor(16)};
 
 
 public:
-    Claw() = default;
+    Collector() = default;
 
-    void clam() {
+    void collect() {
         FOREACH(motors, { it.move(127); });
     }
 
-    void release() {
+    void spit() {
         FOREACH(motors, { it.move(-127); });
     }
 

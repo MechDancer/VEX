@@ -29,8 +29,8 @@ void initialize() {
     pros::Motor initializer_chassis_rb(6, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
     pros::Motor initializer_arm_left(15, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
     pros::Motor initializer_arm_right(11, MOTOR_GEARSET_18, false, MOTOR_ENCODER_DEGREES);
-    pros::Motor initializer_claw_left(20, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
-    pros::Motor initializer_claw_right(16, MOTOR_GEARSET_36, false, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_collector_left(20, MOTOR_GEARSET_18, true, MOTOR_ENCODER_DEGREES);
+    pros::Motor initializer_collector_right(16, MOTOR_GEARSET_18, false, MOTOR_ENCODER_DEGREES);
 
 }
 
