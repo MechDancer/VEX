@@ -206,13 +206,48 @@ class arm_t {
     motor_bundle<2> motors{pros::Motor(15), pros::Motor(11)};
 
 public:
-    arm_t() = default;
-    //TODO
-    //Position close loop
+    arm_t() {
+        FOREACH(motors, {
+            it.set_zero_position(MOTOR_BRAKE_HOLD);
+        });
+    }
+
+    int32_t target_position = .0;
+
+    bool triggered_lock = true;
 
     int32_t current_position() {
         return AVERAGE(double, motors, { return it.get_position(); });
     }
+
+    void lift() {
+        if (triggered_lock)
+            triggered_lock = false;
+        FOREACH(motors, {
+            it.move(127);
+        });
+    }
+
+    void down() {
+        if (triggered_lock)
+            triggered_lock = false;
+        FOREACH(motors, {
+            it.move(-127);
+        });
+    }
+
+    void stop_and_lock() {
+        if (!triggered_lock) {
+            triggered_lock = true;
+            target_position = current_position();
+        }
+        FOREACH(motors, {
+            it.move_absolute(target_position, 200);
+        }
+
+        );
+    }
+
 };
 
 class collector_t {

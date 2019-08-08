@@ -22,11 +22,12 @@ void opcontrol() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
     while (true) {
-        master.print(0, 1, "left current %d, right current%d",
-                     chassis.left_position(), chassis.right_position());
-        master.print(0, 2, "x %f, y %f, w %f", odometry.x, odometry.y, odometry.theta);
-        master.print(0, 3, "s %f, a %f", odometry.s, odometry.a);
-        master.print(0, 4, "arm %d", arm.current_position());
+        pros::lcd::print(0, "left current %d, right current%d",
+                         chassis.left_position(), chassis.right_position());
+        pros::lcd::print(1, "x %f, y %f, w %f", odometry.x, odometry.y, odometry.theta);
+        pros::lcd::print(2, "s %f, a %f", odometry.s, odometry.a);
+        pros::lcd::print(3, "arm current %d, arm target %d, arm lock %d", arm.current_position(), arm.target_position,
+                         arm.triggered_lock);
 
         auto a = master.get_analog(ANALOG_LEFT_Y),
                 b = master.get_analog(ANALOG_RIGHT_X);
@@ -42,13 +43,13 @@ void opcontrol() {
                      position_left_current - position_left_last,
                      position_right_current - position_right_last);
 
-        if (master.get_digital(DIGITAL_L2)) {
-            //up
-        } else if (master.get_digital(DIGITAL_L1)) {
-            //down
-        } else {
-            //stop
-        }
+        if (master.get_digital(DIGITAL_L2))
+            arm.lift();
+        else if (master.get_digital(DIGITAL_L1))
+            arm.down();
+        else
+            arm.stop_and_lock();
+
 
         if (master.get_digital(DIGITAL_R2)) {
             collector.collect();
